@@ -1,34 +1,38 @@
 #include <stdio.h>
 
+
 /*
  * C Imperative Paradigm Lab
  * Parts 1–4 are implemented in this file.
  *
- * Do NOT change function signatures.
- * 
- * 1/15/26 - Brian Toone
+ * Do NOT change function signatures
+ *
+ * 1/15/26
  */
 
 /* ===== Part 2 ===== */
 int sum_to(int n) {
-    // TODO: implement using a for loop and mutable local state
-    return 0;
+int s = 0;
+    for (int i = 1; i <= n; i++) {
+        s = s + i;
+    }
+    return s;
 }
 
 /* ===== Part 3 ===== */
 double avg_1_to_n(int n) {
-    // TODO: call sum_to(n)
-    // HINT: cast to double to avoid integer division
-    return 0.0;
+    sum_to(n);
+    return (double)sum_to(n) / n;
 }
 
 /* ===== Part 4 ===== */
 void increment_bad(int x) {
     x++;
+    printf("a=%d\n", x);
 }
 
 void increment(int *x) {
-    // TODO: fix using a pointer
+    (*x)++;
 }
 
 int main() {
@@ -37,8 +41,8 @@ int main() {
     printf("--- Part 1: State and Sequence ---\n");
 
     int x = 2;
-    x = x + 3;
     x = x * 4;
+    x = x + 3;
     printf("x=%d\n", x);
 
     // TODO: swap the last two assignments above and re-run
