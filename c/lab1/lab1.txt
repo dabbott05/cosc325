@@ -1,0 +1,23 @@
+1.1: I predict that this will return 20
+Reflection: initially x was equal to 2 then it was equal to 5 and then it was equal to 20 . The intermediate values "lived" in the same memory location that was allocated 
+for x , the value in memory location x kept getting overwritten with the new values (2,5,20)
+
+1.2: I predict that this will return 11
+Reflection: The value of x changed due to the order the operations were applied . Imperative languages care about order since they execute a program sequentially (top -> down)
+
+2.1
+Reflection: Control happens on the line, for (int i = 1; i <= n; i++){} and the state changes happen at, s = s + i;
+
+2.2
+Reflection: The python and java versions hid the control flow (for loop) and the state changes (s = s + i)
+
+3.1
+Reflection: C requires you to signify the type double before doing float division . Python and java tend to recognize this and dont require you to state it
+
+4.1
+Reflection: I had to ask AI but, C uses pass-by-value semantics for function parameters , so increment_bad will get a copy of {a}'s value (5), increments a local copy to 6, 
+and leaves the original {a} unchanged
+
+4.2
+Reflection: A pointer will give you the ability to modify the state of a variable by referencing its memory location allowing pass-by-reference in a pass-by-value language
+
