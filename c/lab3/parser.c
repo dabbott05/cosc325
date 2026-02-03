@@ -39,27 +39,47 @@ void statement() {
             lex(); // consume the PRINT token
             expr_list();
             break;
+
         case IF:
             lex();
-
+            expr();
+            if (nextToken != THEN) {
+                printf("Error: expected THEN token after IF expression, but found %d\n", nextToken);
+            } else {
+                lex(); // consume THEN
+            }
+            statement(); // statement after THEN
+            break;
             lex(); // extra call to lex to look for the character term
             break;
-        case LET:
-            lex();
 
-            lex(); // extra call to lex to look for the expression
+        case LET:
+            lex(); // consume LET
+            if (nextToken != IDENT) {
+                printf("Error: expected IDENT token after LET, but found %d\n", nextToken);
+            }
+            lex(); // consume IDENT
+            if (nextToken != EQUALS_OP) {
+                printf("Error: expected EQUALS_OP token after IDENT in LET statement, but found %d\n", nextToken);
+            }
+            lex(); // consume EQUALS_OP
+            expr();
             break;
+
         case INPUT:
             lex();
             break;
+
         case GOTO:
             lex();
 
             lex(); // extra call to lex to look for the line number
             break;
+
         case GOSUB:
             lex();
             break;
+
         case RETURN:
         case CLEAR:
         case LIST:
