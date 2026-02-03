@@ -42,6 +42,19 @@ int lex();
 #define DIV_OP 24
 #define LEFT_PAREN 25
 #define RIGHT_PAREN 26
+#define COMMA 27
+#define PRINT 30
+#define IF 31
+#define THEN 32
+#define INPUT 33
+#define GOTO 34
+#define LET 35
+#define GOSUB 36
+#define RETURN 37
+#define CLEAR 38
+#define LIST 39
+#define RUN 40
+#define END 41
 /******************************************************/
 /* main driver */
 int main()
@@ -111,6 +124,11 @@ int lookup(char ch)
         addChar();
         nextToken = DIV_OP;
         break;
+    
+    case ',':
+        addChar();
+        nextToken = COMMA;
+        break;
 
     default:
         addChar();
@@ -176,7 +194,22 @@ int keywordLookup() {
         return THEN;
     else if (strcmp(lexeme, "INPUT") == 0)
         return INPUT;
-        // FINISH THIS 
+    else if (strcmp(lexeme, "GOTO") == 0)
+        return GOTO;
+    else if (strcmp(lexeme, "LET") == 0)
+        return LET;
+    else if (strcmp(lexeme, "GOSUB") == 0)
+        return GOSUB;
+    else if (strcmp(lexeme, "RETURN") == 0)
+        return RETURN;
+    else if (strcmp(lexeme, "CLEAR") == 0)
+        return CLEAR;
+    else if (strcmp(lexeme, "LIST") == 0)
+        return LIST;
+    else if (strcmp(lexeme, "RUN") == 0)
+        return RUN;
+    else if (strcmp(lexeme, "END") == 0)
+        return END;
     else
         return IDENT;
 }
@@ -184,7 +217,7 @@ int keywordLookup() {
 /*****************************************************/
 /* lex - a simple lexical analyzer for arithmetic
          expressions */
-int lex()
+int lex() // get token
 {
     lexLen = 0;
     getNonBlank();
