@@ -43,6 +43,9 @@ int lex();
 #define LEFT_PAREN 25
 #define RIGHT_PAREN 26
 #define COMMA 27
+#define COLON 28
+#define SEMICOLON 29
+#define QMARK 52
 #define PRINT 30
 #define IF 31
 #define THEN 32
@@ -128,6 +131,21 @@ int lookup(char ch)
     case ',':
         addChar();
         nextToken = COMMA;
+        break;
+    
+    case ':':
+        addChar();
+        nextToken = COLON;
+        break;
+
+    case ';':
+        addChar();
+        nextToken = SEMICOLON;
+        break;
+
+    case '?':
+        addChar();
+        nextToken = QMARK;
         break;
 
     default:
