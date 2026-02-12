@@ -179,6 +179,14 @@ int keywordLookup()
 {
     if (strcmp(lexeme, "PRINT") == 0 || strcmp(lexeme, "PR") == 0)
         return PRINT;
+    else if (strcmp(lexeme, "IF") == 0)
+        return IF;
+    else if (strcmp(lexeme, "THEN") == 0)
+        return THEN;
+    else if (strcmp(lexeme, "RETURN") == 0)
+        return RETURN;
+    else if (strcmp(lexeme, "GOTO") == 0)
+        return GOTO;
     else if (strcmp(lexeme, "INPUT") == 0)
         return INPUT;
     else if (strcmp(lexeme, "GOSUB") == 0)

@@ -45,7 +45,7 @@ void line() {
     }
     statement(); // note that statement MUST have an extra call to lex()
     if (nextToken != CR && nextToken != EOF) {
-        printf("Expecting CR, but found: %d instead!\n", nextToken);
+        printf("Expecting CR, but found: %d instead!***************\n", nextToken);
     }
 
 }
@@ -62,18 +62,13 @@ void statement() {
         case IF:
             lex();
             expression();
-            lex();
             relop();
-            lex();
             expression();
-            lex();
-            if (nextToken != THEN) {
-                printf("error! expecting then found something else");
-            }
+                if (nextToken != THEN) {
+                    printf("Expecting THEN but found: %d\n", nextToken);
+                }
             lex();
             statement();
-            // we never need an extra call to lex() here
-            // because statement() ALWAYS has an extra call to lex()
             break;
 
         case GOTO:
@@ -85,7 +80,17 @@ void statement() {
         // keep going with more cases INPUT DOES NOT NEED THE EXTRA CALL TO LEX ... NEITHER DO THE ONES THAT ARE JUST KEYWORDS
         case INPUT:
             lex();
-            // TODO
+            if (nextToken != VAR) {
+                printf("Expecting IDENT but found: %d\n", nextToken);
+            }
+            lex();
+            if (nextToken == COMMA) {
+                lex();
+                if (nextToken != VAR) {
+                    printf("Expecting IDENT but found: %d\n", nextToken);
+                }
+                lex();
+            }
             break;
 
         case LET:
@@ -176,8 +181,6 @@ void term() {
         factor();
         lex(); // look for the next multOP or divOP
     }
-    // you gotta do something here ... should be very similar to expression() but looking for * and / instead of + and -
-    // note that term() will end up having an extra call to lex() at the end just like expression() does
 }
 
 void factor() {
@@ -198,10 +201,21 @@ void factor() {
 }
 
 void relop() { // relationship operator
-    if (nextToken == EQUALS_OP || nextToken == LT_OP || nextToken == RT_OP) {
-        // do nothing for this assignment
+    if (nextToken == EQUALS_OP) {
+        lex();
+    } else if (nextToken == LT_OP) {
+        lex();
+        // Check for <= or <>
+        if (nextToken == EQUALS_OP || nextToken == RT_OP) {
+            lex();
+        }
+    } else if (nextToken == RT_OP) {
+        lex();
+        // Check for >=
+        if (nextToken == EQUALS_OP) {
+            lex();
+        }
     } else {
         printf("Expecting relop but found: %d\n", nextToken);
-        exit(1);
     }
 }
