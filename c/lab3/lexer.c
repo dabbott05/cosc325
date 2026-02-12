@@ -1,5 +1,7 @@
+/* front.c - a lexical analyzer system for simple
+             arithmetic expressions */
+
 #include <stdio.h>
-#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -12,7 +14,7 @@ char nextChar;
 int lexLen;
 int token;
 int nextToken;
-FILE *in_fp;
+FILE *in_fp; /*, *fopen(); */
 /* Function declarations */
 void addChar();
 void getChar();
@@ -28,32 +30,31 @@ int lex();
 /* Token codes */
 #define STRING 8
 #define NUMBER 10
-#define FLOAT_LIB 9
 #define IDENT 11
+#define VAR 12
+#define LT_OP 18
+#define RT_OP 19
 #define EQUALS_OP 20
-#define LT_OP 12
-#define GT_OP 13
 #define ADD_OP 21
 #define SUB_OP 22
 #define MULT_OP 23
 #define DIV_OP 24
 #define LEFT_PAREN 25
 #define RIGHT_PAREN 26
-#define COMMA 27
 #define PRINT 30
 #define IF 31
 #define THEN 32
-#define INPUT 33
-#define GOTO 34
-#define LET 35
-#define GOSUB 36
-#define RETURN 37
-#define CLEAR 38
-#define LIST 39
-#define RUN 40
-#define END 41
-#define CR 42
-/* main driver */
+#define GOTO 33
+#define GOSUB 34
+#define INPUT 35
+#define LET 36
+#define COMMA 40
+#define RETURN 41
+#define END 42
+#define LIST 43
+#define CLEAR 44
+#define RUN 45
+#define CR 99
 
 /*****************************************************/
 /* lookup - a function to lookup operators and parentheses
@@ -63,21 +64,6 @@ int lookup(char ch)
 {
     switch (ch)
     {
-    case '=':
-        addChar();
-        nextToken = EQUALS_OP;
-        break;
-        
-    case '<':
-        addChar();
-        nextToken = LT_OP;
-        break;
-
-    case '>':
-        addChar();
-        nextToken = GT_OP;
-        break;
-
     case '(':
         addChar();
         nextToken = LEFT_PAREN;
@@ -107,13 +93,28 @@ int lookup(char ch)
         addChar();
         nextToken = DIV_OP;
         break;
-    
+
+    case '=':
+        addChar();
+        nextToken = EQUALS_OP;
+        break;
+
+    case '<':
+        addChar();
+        nextToken = LT_OP;
+        break;
+
+    case '>':
+        addChar();
+        nextToken = RT_OP;
+        break;
+
     case ',':
         addChar();
         nextToken = COMMA;
         break;
 
-    case '/n':
+    case '\n':
         addChar();
         nextToken = CR;
         break;
@@ -173,39 +174,39 @@ void getNonBlank()
         getChar();
 }
 
-int keywordLookup() {
+/* examines current lexeme and returns specific token or IDENT if it's not a keyword */
+int keywordLookup()
+{
     if (strcmp(lexeme, "PRINT") == 0 || strcmp(lexeme, "PR") == 0)
         return PRINT;
-    else if (strcmp(lexeme, "IF") == 0)
-        return IF;
-    else if (strcmp(lexeme, "THEN") == 0)
-        return THEN;
     else if (strcmp(lexeme, "INPUT") == 0)
         return INPUT;
+    else if (strcmp(lexeme, "GOSUB") == 0)
+        return GOSUB;
     else if (strcmp(lexeme, "GOTO") == 0)
         return GOTO;
     else if (strcmp(lexeme, "LET") == 0)
         return LET;
-    else if (strcmp(lexeme, "GOSUB") == 0)
-        return GOSUB;
-    else if (strcmp(lexeme, "RETURN") == 0)
-        return RETURN;
+    else if (strcmp(lexeme, "END") == 0)
+        return END;
     else if (strcmp(lexeme, "CLEAR") == 0)
         return CLEAR;
     else if (strcmp(lexeme, "LIST") == 0)
         return LIST;
     else if (strcmp(lexeme, "RUN") == 0)
         return RUN;
-    else if (strcmp(lexeme, "END") == 0)
-        return END;
+    else if (strlen(lexeme) == 1 ) {
+        return VAR;
+    }
     else
         return IDENT;
 }
 
 /*****************************************************/
-/* lex - a simple lexical analyzer for arithmetic
-         expressions */
-int lex() // get token
+/* lex - a simple lexical analyzer for arithmetic expressions
+depends on charClass and nextChar already being set by the caller
+         */
+int lex()
 {
     lexLen = 0;
     getNonBlank();
@@ -232,32 +233,18 @@ int lex() // get token
             addChar();
             getChar();
         }
-
-        if (nextChar == '.'){
-            addChar();
-            getChar();
-        while (charClass == DIGIT)
-        {
-            addChar();
-            getChar();
-        }
-        nextToken = FLOAT_LIB;
-        break;
-    }
-
         nextToken = NUMBER;
         break;
 
     case QUOTE:
         addChar();
         getChar();
-        
-        while (charClass != QUOTE && charClass != EOF)
+        while (charClass != QUOTE)
         {
             addChar();
             getChar();
         }
-        addChar();  // Add the closing quote
+        addChar();
         getChar();
         nextToken = STRING;
         break;
@@ -277,7 +264,6 @@ int lex() // get token
         lexeme[3] = 0;
         break;
     } /* End of switch */
-    printf("Next token is: %d, Next lexeme is %s\n",
-    nextToken, lexeme);
+    printf("Next token is: %d, Next lexeme is %s\n", nextToken, lexeme);
     return nextToken;
 } /* End of function lex */
