@@ -1,5 +1,7 @@
 #include "lexer.c"
 
+// https://en.wikipedia.org/wiki/Tiny_BASIC
+
 // data structures needed for the interpreter
 int lineno = 0;   // if this is equal to 0 then we should execute immediately
 char* lines[10];  // preallocate enough room for 10 lines
