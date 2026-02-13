@@ -3,7 +3,7 @@
 // data structures needed for the interpreter
 int lineno = 0;   // if this is equal to 0 then we should execute immediately
 char* lines[10];  // preallocate enough room for 10 lines
-int linenos[10]; 
+int linenos[10];
 
 void line();
 void statement();
@@ -25,7 +25,7 @@ else
     getChar();
     do
     {
-    lex();
+    lex(); // prime the pump so we can consume line number
     line();
     } while (nextToken != EOF);
 }
@@ -35,17 +35,11 @@ else
 void line() {
     if (nextToken == NUMBER) {
         lineno = atoi(lexeme);
-        // take whatever is left in the rest of the line and store it for processing later!
-
-        // consume the token by looking at the line number
-        // and storing the statement that follows in the right place in our stored program
-        // BUT NOT FOR THIS ASSIGNMENT
-        // Call lex() to get the next token
-        lex();
+        lex(); // consume the line number and look for the first token of statement
     }
-    statement(); // note that statement MUST have an extra call to lex()
+    statement(); // our nextToken starts the statement - as per grammar rules
     if (nextToken != CR && nextToken != EOF) {
-        printf("Expecting CR, but found: %d instead!***************\n", nextToken);
+        printf("***************Expecting CR, but found: %d instead!***************\n", nextToken);
     }
 
 }
@@ -54,67 +48,57 @@ void line() {
 void statement() {
     switch(nextToken) {
         case PRINT:
-            lex();
-            expr_list();
-            // unconditionally printf("\n");
+            lex(); // consume print and look for what we are going to print starting with " or the first token of an expression
+            expr_list(); // unconditionally printf("\n");
             break;
 
         case IF:
-            lex();
-            expression();
-            relop();
-            expression();
+            lex(); // consumes IF and then looks for the first token of the expression
+            expression(); // expression() calls lex(); so we dont have to do it before relop()
+            relop(); // relop() calls lex(); so we dont have to do it before the next expression
+            expression(); // expression() calls lex(); so we dont have to do it before THEN
                 if (nextToken != THEN) {
                     printf("Expecting THEN but found: %d\n", nextToken);
                 }
-            lex();
+            lex(); // consume THEN and look for the first token of the statement after THEN
             statement();
             break;
 
         case GOTO:
-            lex();
-            expression();
-            // no extra call to lex to look for the carriage return
+            lex(); // consume GOTO and look for the first token of the expression
+            expression(); // no extra call to lex to look for the carriage return
             break;
 
-        // keep going with more cases INPUT DOES NOT NEED THE EXTRA CALL TO LEX ... NEITHER DO THE ONES THAT ARE JUST KEYWORDS
         case INPUT:
-            lex();
+            lex(); // consume INPUT and look for the first token of the variable list
             if (nextToken != VAR) {
                 printf("Expecting IDENT but found: %d\n", nextToken);
             }
-            lex();
-            if (nextToken == COMMA) {
-                lex();
-                if (nextToken != VAR) {
-                    printf("Expecting IDENT but found: %d\n", nextToken);
-                }
-                lex();
+            lex(); // consume the first variable and look for the comma or carriage return
+            while (nextToken == COMMA) {
+                lex(); // consume the comma and look for the next variable
+                lex(); // consume the second variable and look for the comma or carriage return
             }
             break;
 
         case LET:
-            lex();
+            lex(); // consume LET and look for the token of the first variable
             if (nextToken != VAR) {
                 printf("Expecting IDENT but found: %d\n", nextToken);
-                exit(1);
             }
-            lex();
+            lex(); // consume the variable and look for the equals sign
             if (nextToken != EQUALS_OP) {
                 printf("Expecting EQ but found: %d\n", nextToken);
-                exit(1);
             }
-            lex();
-            expression();
+            lex(); // consume the equals sign and look for the first token of the expression
+            expression(); // calls lex();
 
-            // no extra call to lex() here because expression() will have already called lex() for us when it was looking for +, -, *, or /
             break;
         
         case GOSUB:
-            lex();
-            expression();
+            lex(); // consume GOSUB and look for the first token of the expression
+            expression(); // calls lex();
 
-            // NO extra call to lex to look for the carriage return b/c expression() has an extra call to lex()
             break;
             
         case RETURN:
@@ -154,7 +138,6 @@ void expr_list() {
         // there are only two valid tokens AT THIS SPOT
         if (nextToken != COMMA && nextToken != CR) {
             printf("Expecting COMMA or CR but found: %d\n", nextToken);
-            exit(1);
         }
     }
 }
@@ -205,7 +188,7 @@ void relop() { // relationship operator
         lex();
     } else if (nextToken == LT_OP) {
         lex();
-        // Check for <= or <>
+
         if (nextToken == EQUALS_OP || nextToken == RT_OP) {
             lex();
         }
@@ -219,3 +202,12 @@ void relop() { // relationship operator
         printf("Expecting relop but found: %d\n", nextToken);
     }
 }
+
+/*
+Im starting to think that i will have to have a var_list function
+and possibly even a var function.
+
+But then number doesnt require a function so maybe not ...
+
+Keeping track of the calls to lex() is the hardest part of this assignment
+*/
