@@ -183,7 +183,11 @@ void statement() {
             }
         case RUN:
             sort();
-        case RETURN:
+            // update lexer to read in a string instead of always reading in a file
+            // do this by adding a flag variable to the lexer to indicate wether it should be grabbing the nextToken from a file or from 
+            // a string also add a function that will set a global string to be processed and simultaneously set the flag
+            // we need to clear the flag after the program has run and set it to continue reading from the file
+            case RETURN:
         case END:
              lex(); // this IS the extra call to lex() since nothing comes after these keywords
             break;
