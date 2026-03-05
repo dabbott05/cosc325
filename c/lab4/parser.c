@@ -1,4 +1,5 @@
 #include "lexer.c"
+#define strcpy
 
 // https://en.wikipedia.org/wiki/Tiny_BASIC
 
@@ -9,18 +10,62 @@ int linenos[1000];
 int lineindex = 0; // keeps track of how many lines we have and where we are and where the next line should 
 // be stored
 
+// heres the symbol table
+int symboltable[26]; // positino 0 = A , 1 = B, ... , Z = 25
+int symboldefined[26]; // store a 1 in a given position if that symbol has been defined
+
 void line();
 void statement();
 void expr_list();
-void expression();
-void term();
-void factor();
+int expression();
+int term();
+int factor();
 void relop();
+
+// hardcoded swao of the positions to be applied in the 2 different data strructures
+void swap(int j, int k){
+    char* tmpc = lines[j];
+    lines[j] = lines[k];
+    lines[k] = tmpc;
+
+    // now lets take care of swapping the ints in the linenos array
+    int tmp = linenos[j];
+    linenos[j] = linenos[k];
+    linenos[k] = tmp;
+}
+
+// insertion sort
+void sort() {
+    int i = 1;
+    while (i < lineindex) {
+        int j = i;
+        while (j > 0 && linenos[j - 1] > linenos[j]) {
+            swap(j, j-1);
+            j = j-1;
+        }
+        i = i+1;
+    }
+}
+
+//search thorugh linenos and retunr index if found , otherwise return -1
+int search(int lineno) {
+    for (int i=0; i < lineindex; i++) {
+        if (linenos[i] == lineno) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 /******************************************************/
 /* main driver */
 int main()
 {
+// prep the symbol table
+for (int i = 0; i < 26; i++) {
+    symboldefined[i] = 0;
+}
+
   /* Open the input data file and process its contents */
 if ((in_fp = fopen("front.in", "r")) == NULL)
     printf("ERROR - cannot open front.in \n");
@@ -39,15 +84,25 @@ else
 void line() {
     if (nextToken == NUMBER) {
         lineno = atoi(lexeme);
+        int previndex = search(linenos, lineno); // has this line number been used ?
+        if (previndex < 0) {
+            linenos[lineindex] = lineno; // never used , store it in the next available spot
+        }
         linenos[lineindex] = lineno;
         // this is our special lex_endl() function to extract the rest of the line out of the file
         lex_endl(); // sets a global variable names restOfLine that we need to store
         // in the right place in our lines data structure
 
-        lines[lineindex] = malloc(1000); // preallocate enough room for 1000 characters in each line
-        strcpy(lines[lineindex], resOfLine);
-        printf("Stored this line: %s at line number: %d which is index: %d\n", restOfLine, lineno, lineindex);
-        lineindex++;
+        if (previndex < 0){
+            // if we dont have a hit in the search for the line number then we need to store this line in the next available spot which is lineindex
+            lines[lineindex] = malloc(1000); // preallocate enough room for 1000 characters in each line
+            strcpy(lines[lineindex], restOfLine);
+            printf("Stored this line: %s at line number: %d which is index: %d\n", restOfLine, lineno, lineindex);
+            lineindex++;
+        } else {
+            strcpy(lines[previndex], restOfLine);
+            printf("Overwriting line number: %d at index: %d with this line: %s\n", lineno, previndex, restOfLine);
+        }
     }
         else{
             statement(); // our nextToken starts the statement - as per grammar rules
@@ -99,12 +154,15 @@ void statement() {
             if (nextToken != VAR) {
                 printf("Expecting IDENT but found: %d\n", nextToken);
             }
+            int pos = lexeme[0] - 'A';
+            symboldefined[pos] = 1; // mark this symbol as defined in the symboldefined array
+
             lex(); // consume the variable and look for the equals sign
             if (nextToken != EQUALS_OP) {
                 printf("Expecting EQ but found: %d\n", nextToken);
             }
             lex(); // consume the equals sign and look for the first token of the expression
-            expression(); // calls lex();
+            symboltable[pos] = expression(); // calls lex();
 
             break;
         
@@ -119,10 +177,12 @@ void statement() {
             lex();
             break;
         case LIST:
+            sort();
             for (int i = 0; i < lineindex; i++) {
                 printf("%d: %s\n", linenos[i], lines[i]);
             }
         case RUN:
+            sort();
         case RETURN:
         case END:
              lex(); // this IS the extra call to lex() since nothing comes after these keywords
@@ -136,10 +196,11 @@ void expr_list() {
     if (nextToken == STRING) {
         // extra call to lex() to look for the comma or carriage return after the string
         lex();
+        printf("%s\t", lexeme);
         // do nothing else for this assignment
         // but in the next assignment you will need to print something!
     } else {
-        expression();
+        printf("%d\t", expression());
         // expression ends with an extra call to lex() so we are already looking for the comma or carriage return by the time we get back here
     }
     while (nextToken == COMMA) {
@@ -148,10 +209,11 @@ void expr_list() {
         if (nextToken == STRING) {
             // extra call to lex() to look for the comma or carriage return after the string
             lex();
+            printf("%s\t", lexeme);
             // do nothing else for this assignment
             // but in the next assignment you will need to print something
         } else {
-            expression();
+            printf("%d\t", expression());
             // no extra call to lex() here because expression() will have already called lex() for us when it was looking for +, -, *, or /
         }
         // there are only two valid tokens AT THIS SPOT
@@ -159,35 +221,55 @@ void expr_list() {
             printf("Expecting COMMA or CR but found: %d\n", nextToken);
         }
     }
+    printf("\n");
 }
 
-void expression() {
+int expression() {
     if(nextToken == ADD_OP || nextToken == SUB_OP) {
         lex(); // move past the leading + or - if it was there otherwise, the current nextToken is part of the term so no need to call lex()
     }
-    term();
+    int result = term();
     // no need to call lex() here because term() will have already called lex() for us when it was looking for * or /
     while (nextToken == ADD_OP || nextToken == SUB_OP) {
         lex(); // move past the + or -
-        term();
+        if (nextToken == ADD_OP) {
+            result += term();
+        } else {
+            result -= term();
         // remember, term() will have already called lex() for us when it was looking for * or / so no need to call it again here
     }
+}
+    return result;
     // no need for extra call to lex() here because the while loop will have already called lex() for us when it was looking for + or -
 }
 
-void term() {
-    factor();
+int term() {
+    int result = factor();
     lex(); // look for multOP or divOP
     while (nextToken == MULT_OP || nextToken == DIV_OP) {
         lex(); // move past the * or /
-        factor();
-        lex(); // look for the next multOP or divOP
+            if (nextToken == MULT_OP) {
+                result *= factor();
+            } else {
+                result /= factor();
+            }
+            lex(); // look for the next multOP or divOP
     }
+    printf("What? Expecting VAR or NUMBER or LEFT_PAREN but found: %d\n", nextToken);
+    return -999;
 }
 
-void factor() {
+int factor() {
     if (nextToken == VAR || nextToken == NUMBER) {
         //do nothing for this assignment
+        int pos = lexeme[0] - 'A';
+        if (symboldefined[pos] == 0) {
+            printf("How? Variable %c used before being defined.\n", lexeme[0]);
+        }
+        return symboltable[pos]; // return the value of the variable or number  
+    }
+    else if (nextToken == NUMBER){
+        return atoi(lexeme); // convert the lexeme to an integer and return it
     }
     else if (nextToken == LEFT_PAREN){
         lex();
@@ -196,10 +278,13 @@ void factor() {
             printf("Expecting right paren but found: %d\n", nextToken);
         }
     }
+
     // big if statement , no extra call to lex() at the end . grabs VAR, or a NUMBER, or an (expression) (var, number or a left_praran)
 
     // look back at the grammar for all the possibilities for a factor ... you need if else if to handle identifiers, numbers, and parenthesized expressions
     // you should make very sure NOT to have an extra call to lex() here (finally!) because expression() and term() are the ones that need the extra calls to lex() to look for +, -, *, or /
+    // return the value of the defined variable
+    // placeholder return value
 }
 
 void relop() { // relationship operator
