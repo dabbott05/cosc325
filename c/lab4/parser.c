@@ -1,5 +1,4 @@
 #include "lexer.c"
-#define strcpy
 
 // https://en.wikipedia.org/wiki/Tiny_BASIC
 
@@ -22,7 +21,14 @@ void expr_list();
 int expression();
 int term();
 int factor();
-void relop();
+int relop();
+void var_list();
+
+void killIf(){
+    while (nextChar != "\n" && nextChar != 0){
+        getChar();
+    }
+}
 
 // hardcoded swao of the positions to be applied in the 2 different data strructures
 void swap(int j, int k){
@@ -61,9 +67,10 @@ int search(int lineno) {
 
 int findLine(int lineno){
     int hit = search(lineno);
-    if (hit < 0) { 
+    if (hit < 0) {
         printf("Could not find line number %d\n" , lineno);
     }
+    return hit;
 }
 
 /******************************************************/
@@ -124,6 +131,9 @@ void line() {
 // lex() MUST have already been called before here
 void statement() {
     int targetlineno; // this is only used for GOTO and GOSUB
+    int if_a;
+    int if_b;
+    int op;
     switch(nextToken) {
         case PRINT:
             lex(); // consume print and look for what we are going to print starting with " or the first token of an expression
@@ -132,13 +142,71 @@ void statement() {
 
         case IF:
             lex(); // consumes IF and then looks for the first token of the expression
-            expression(); // expression() calls lex(); so we dont have to do it before relop()
-            relop(); // relop() calls lex(); so we dont have to do it before the next expression
+            if_a = expression(); // expression() calls lex(); so we dont have to do it before relop()
+            op = relop(); // relop() calls lex(); so we dont have to do it before the next expression
             expression(); // expression() calls lex(); so we dont have to do it before THEN
                 if (nextToken != THEN) {
                     printf("Expecting THEN but found: %d\n", nextToken);
                 }
             lex(); // consume THEN and look for the first token of the statement after THEN
+            switch(op) {
+
+// 0: <
+// 1: >
+// 2: == 
+// 3: <=
+// 4: >=
+// 5: <> or ><
+                case 0:
+                    if (if_a < if_b) {
+                        statement();
+                    }
+                    else {
+                        killIf();
+                    }
+                    break;
+                case 1:
+                    if (if_a > if_b) {
+                        statement();
+                    }
+                    else {
+                        killIf();
+                    }
+                    break;
+                case 2:
+                    if (if_a == if_b) {
+                        statement();
+                    }
+                    else {
+                        killIf();
+                    }
+                    break;
+                case 3:
+                    if (if_a <= if_b) {
+                        statement();
+                    }
+                    else {
+                        killIf();
+                    }
+                    break;
+                case 4:
+                    if (if_a >= if_b) {
+                        statement();
+                    }
+                    else{
+                        killIf();
+                    }
+                    break;
+                case 5:
+                    if (if_a != if_b) {
+                        statement();
+                    }
+                    else {
+                        killIf();
+                        // force the lexer to read to the end of the line
+                    }
+                    break;
+            }
             statement();
             break;
 
@@ -277,14 +345,47 @@ int expression() {
     // no need for extra call to lex() here because the while loop will have already called lex() for us when it was looking for + or -
 }
 
+void var_list() {
+    int varpos[26];
+    int varcnt = 0;
+    if (nextToken != VAR) {
+        printf("Expecting VAR but found %d\n", nextToken);
+    }
+    else {
+        varpos[varcnt++] = lexeme[0] - 'A';
+        lex();
+    }
+    while (nextToken == COMMA) {
+        lex();
+        if (nextToken != VAR) {
+            printf("Expecting VAR but found: %d\n", nextToken);
+        }
+        else {
+            varpos[varcnt++] = lexeme[0] - 'A';
+            lex();
+            
+        }
+    }
+    // we need to use scanf to read from the console
+    // and convert whatever they type in into a number
+    // and then store that number into the symboltable
+    // at the right spot
+    // varpos[1] we found during parsing
+    for (int i = 0; i < varcnt; i++) {
+        scanf("%d", &symboltable[varpos[i]]); // direct memory address of where the VAR is
+        symboldefined[varpos[i]] = 1;
+    }
+}
+
 int term() {
     int result = factor();
     lex(); // look for multOP or divOP
     while (nextToken == MULT_OP || nextToken == DIV_OP) {
-        lex(); // move past the * or /
             if (nextToken == MULT_OP) {
+                lex();
                 result *= factor();
             } else {
+                lex();
                 result /= factor();
             }
             lex(); // look for the next multOP or divOP
@@ -312,6 +413,7 @@ int factor() {
             printf("Expecting right paren but found: %d\n", nextToken);
         }
     }
+    return -1;
 
     // big if statement , no extra call to lex() at the end . grabs VAR, or a NUMBER, or an (expression) (var, number or a left_praran)
 
@@ -321,7 +423,13 @@ int factor() {
     // placeholder return value
 }
 
-void relop() { // relationship operator
+// 0: <
+// 1: >
+// 2: == 
+// 3: <=
+// 4: >=
+// 5: <> or ><
+int relop() { // relationship operator
     if (nextToken == EQUALS_OP) {
         lex();
     } else if (nextToken == LT_OP) {
@@ -329,6 +437,15 @@ void relop() { // relationship operator
 
         if (nextToken == EQUALS_OP || nextToken == RT_OP) {
             lex();
+            if (nextToken == RT_OP) {
+                return 5;
+            }
+            else {
+                return 3;
+            }
+        }
+        else{
+            return 0;
         }
     } else if (nextToken == RT_OP) {
         lex();
@@ -339,6 +456,7 @@ void relop() { // relationship operator
     } else {
         printf("Expecting relop but found: %d\n", nextToken);
     }
+    return -1;
 }
 
 /*
