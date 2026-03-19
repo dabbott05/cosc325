@@ -9,6 +9,8 @@ char* lines[1000];  // preallocate enough room for 10 lines
 int linenos[1000];
 int lineindex = 0; // keeps track of how many lines we have and where we are and where the next line should 
 // be stored
+int linei = 0; // keeops track of which lineindex we are on while running a program
+int reti = 0; // keeps track of the index we should return too after a gosub is executed
 
 // heres the symbol table
 int symboltable[26]; // positino 0 = A , 1 = B, ... , Z = 25
@@ -57,6 +59,13 @@ int search(int lineno) {
     return -1;
 }
 
+int findLine(int lineno){
+    int hit = search(lineno);
+    if (hit < 0) { 
+        printf("Could not find line number %d\n" , lineno);
+    }
+}
+
 /******************************************************/
 /* main driver */
 int main()
@@ -84,7 +93,7 @@ else
 void line() {
     if (nextToken == NUMBER) {
         lineno = atoi(lexeme);
-        int previndex = search(linenos, lineno); // has this line number been used ?
+        int previndex = search(lineno); // has this line number been used ?
         if (previndex < 0) {
             linenos[lineindex] = lineno; // never used , store it in the next available spot
         }
@@ -114,6 +123,7 @@ void line() {
 
 // lex() MUST have already been called before here
 void statement() {
+    int targetlineno; // this is only used for GOTO and GOSUB
     switch(nextToken) {
         case PRINT:
             lex(); // consume print and look for what we are going to print starting with " or the first token of an expression
@@ -130,11 +140,6 @@ void statement() {
                 }
             lex(); // consume THEN and look for the first token of the statement after THEN
             statement();
-            break;
-
-        case GOTO:
-            lex(); // consume GOTO and look for the first token of the expression
-            expression(); // no extra call to lex to look for the carriage return
             break;
 
         case INPUT:
@@ -165,10 +170,21 @@ void statement() {
             symboltable[pos] = expression(); // calls lex();
 
             break;
+
+        case GOTO:
+            lex(); // consume GOTO and look for the first token of the expression
+            targetlineno = expression(); // no extra call to lex to look for the carriage return
+            // find the linei we are supposed to GOTO
+            linei = findLine(targetlineno)-1;
+            break;
         
         case GOSUB:
             lex(); // consume GOSUB and look for the first token of the expression
-            expression(); // calls lex();
+            targetlineno = expression(); // calls lex();
+            reti = linei; // save the index of the line we should return to
+            linei = findLine(targetlineno)-1; // remember this is from a recursive call where we are 
+            // in the middle of a for loop that will execute linei++ so we need to set it to the 
+            // targetindex -1
 
             break;
             
@@ -183,13 +199,27 @@ void statement() {
             }
         case RUN:
             sort();
+            for(linei=0; linei < lineindex; linei++){
+                in_str = lines[linei];
+                stri = 0;
+                getChar();
+                lex();
+                line();
+            }
             // update lexer to read in a string instead of always reading in a file
             // do this by adding a flag variable to the lexer to indicate wether it should be grabbing the nextToken from a file or from 
             // a string also add a function that will set a global string to be processed and simultaneously set the flag
             // we need to clear the flag after the program has run and set it to continue reading from the file
-            case RETURN:
+            lex();
+            break;
+        case RETURN:
+            linei = reti;
+            lex();
+            break;
         case END:
-             lex(); // this IS the extra call to lex() since nothing comes after these keywords
+            linei = lineindex;
+            stri = -1; // this puts us back into file reading mode
+            lex(); // this IS the extra call to lex() since nothing comes after these keywords
             break;
     }
 }
