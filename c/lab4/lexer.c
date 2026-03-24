@@ -59,6 +59,7 @@ int lex();
 #define CLEAR 44
 #define RUN 45
 #define CR 99
+#define REM 46
 
 /*****************************************************/
 /* lookup - a function to lookup operators and parentheses
@@ -149,15 +150,24 @@ void addChar()
              input and determine its character class */
 void getChar()
 {
-    int c = stri < 0 ? getc(in_fp) : in_str[stri++];
-    if (c == EOF || stri>=0 && stri == strlen(in_str))
-    {
+    int c;
+    if (stri < 0) {
+        c = getc(in_fp); // Read from file
+    } else {
+        c = in_str[stri]; // Read from string
+        if (c != '\0') stri++; // Only increment if we haven't reached the end
+    }
+    if (c == EOF) {
+        charClass = EOF;
+        nextChar = '\0';
+        return;
+    }
+    else if (stri >= 0 && c == '\0') {
         charClass = CR;
         nextChar = '\n';
         return;
     }
-    else
-    {
+    else {
         nextChar = (char)c;
         if (isalpha((unsigned char)nextChar))
             charClass = LETTER;
@@ -208,6 +218,8 @@ int keywordLookup()
         return LIST;
     else if (strcmp(lexeme, "RUN") == 0)
         return RUN;
+    else if (strcmp(lexeme, "REM") == 0)
+        return REM;
     else if (strlen(lexeme) == 1 ) {
         return VAR;
     }
@@ -292,6 +304,5 @@ int lex()
         lexeme[3] = 0;
         break;
     } /* End of switch */
-    printf("Next token is: %d, Next lexeme is %s\n", nextToken, lexeme);
     return nextToken;
 } /* End of function lex */
