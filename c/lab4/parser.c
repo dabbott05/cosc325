@@ -197,15 +197,8 @@ void statement() {
             break;
 
         case INPUT:
-            lex(); // consume INPUT and look for the first token of the variable list
-            if (nextToken != VAR) {
-                printf("Expecting IDENT but found: %d\n", nextToken);
-            }
-            lex(); // consume the first variable and look for the comma or carriage return
-            while (nextToken == COMMA) {
-                lex(); // consume the comma and look for the next variable
-                lex(); // consume the second variable and look for the comma or carriage return
-            }
+            lex(); // consume INPUT 
+            var_list(); // This will trigger the scanf for each variable in the list
             break;
 
         case LET:
